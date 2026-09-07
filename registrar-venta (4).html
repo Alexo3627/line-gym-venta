@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registrar venta — LINE GYM EC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121212;
+    --panel:#1b1b1b;
+    --panel-2:#212121;
+    --line:#2a2a2a;
+    --text:#f2f2f0;
+    --muted:#8c8c88;
+    --accent:#ff4b26;
+    --accent-dim:#7a2d1c;
+    --ok:#b6ff3c;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:150px;
+  }
+  header{
+    padding:20px 16px 12px;
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    background:var(--bg);
+    z-index:10;
+  }
+  .titlebar{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  h1{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:26px;
+    letter-spacing:0.3px;
+    margin:0;
+    line-height:1;
+  }
+  .cliente-badge{
+    font-size:12px;
+    color:var(--muted);
+    text-align:right;
+    line-height:1.3;
+  }
+  .cliente-badge strong{
+    display:block;
+    color:var(--text);
+    font-size:14px;
+    font-weight:600;
+  }
+  .search-row{
+    display:flex;
+    gap:8px;
+  }
+  .search-row input{
+    flex:1;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:10px 14px;
+    color:var(--text);
+    font-size:14px;
+    font-family:inherit;
+  }
+  .search-row input::placeholder{color:var(--muted);}
+  .search-row input:focus{outline:none;border-color:var(--accent);}
+  .chips{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    margin-top:12px;
+    padding-bottom:2px;
+    scrollbar-width:none;
+  }
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{
+    flex:none;
+    padding:6px 14px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:border-color .15s, color .15s, background .15s;
+  }
+  .chip.active{
+    border-color:var(--accent);
+    color:var(--text);
+    background:var(--accent-dim);
+  }
+
+  main{padding:4px 16px 8px;}
+  .status-line{
+    font-size:12px;
+    color:var(--muted);
+    padding:10px 2px 4px;
+  }
+  .status-line.error{color:var(--accent);}
+
+  .product{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 2px;
+    border-bottom:1px solid var(--line);
+  }
+  .product.out .qty-stepper, .product.out .price{opacity:.35;}
+  .thumb{
+    width:44px;height:44px;
+    border-radius:8px;
+    flex:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Anton',sans-serif;
+    font-size:16px;
+    color:#121212;
+  }
+  .info{flex:1;min-width:0;}
+  .info .name{
+    font-size:15px;
+    font-weight:600;
+    margin:0 0 2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .info .meta{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .info .meta.low{color:var(--accent);}
+  .price{
+    font-size:14px;
+    font-weight:700;
+    width:56px;
+    text-align:right;
+    flex:none;
+  }
+  .qty-stepper{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex:none;
+  }
+  .qty-stepper button{
+    width:26px;height:26px;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--text);
+    font-size:15px;
+    line-height:1;
+    cursor:pointer;
+  }
+  .qty-stepper button:disabled{opacity:.3;cursor:default;}
+  .qty-stepper .qty-val{
+    min-width:16px;
+    text-align:center;
+    font-size:14px;
+    font-weight:600;
+  }
+
+  .empty{
+    text-align:center;
+    color:var(--muted);
+    padding:40px 10px;
+    font-size:14px;
+  }
+
+  .payment-row{
+    position:fixed;
+    bottom:74px;left:0;right:0;
+    background:var(--panel-2);
+    border-top:1px solid var(--line);
+    padding:8px 16px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    overflow-x:auto;
+    z-index:9;
+  }
+  .payment-label{
+    font-size:11px;
+    color:var(--muted);
+    flex:none;
+  }
+  .payment-options{
+    display:flex;
+    gap:8px;
+  }
+  .pay-chip.active{
+    border-color:var(--ok);
+    color:var(--text);
+    background:#2c3a12;
+  }
+
+  footer{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--panel-2);
+    border-top:1px solid var(--line);
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .totales{line-height:1.3;}
+  .totales .items{font-size:11px;color:var(--muted);}
+  .totales .monto{
+    font-family:'Anton',sans-serif;
+    font-size:22px;
+  }
+  .confirmar{
+    background:var(--ok);
+    color:#121212;
+    border:none;
+    border-radius:var(--radius);
+    padding:14px 22px;
+    font-size:14px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    flex:none;
+  }
+  .confirmar:disabled{background:var(--line);color:var(--muted);cursor:default;}
+  .confirmar.loading{opacity:.6;}
+
+  .toast{
+    position:fixed;
+    top:14px;left:50%;
+    transform:translateX(-50%);
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    padding:10px 16px;
+    border-radius:8px;
+    font-size:13px;
+    z-index:50;
+    display:none;
+  }
+  .toast.show{display:block;}
+  .toast.ok{border-color:var(--ok);}
+  .toast.err{border-color:var(--accent);}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="titlebar">
+    <h1>Mis Productos</h1>
+    <div class="cliente-badge" id="clienteBadge">
+      Cliente<strong id="clienteNombre">—</strong>
+    </div>
+  </div>
+  <div class="search-row">
+    <input type="text" id="buscador" placeholder="Buscar producto">
+  </div>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <div class="status-line" id="statusLine"></div>
+  <div id="lista"></div>
+</main>
+
+<div class="payment-row" id="paymentRow">
+  <span class="payment-label">Método de pago</span>
+  <div class="payment-options">
+    <div class="chip pay-chip" data-value="Efectivo">Efectivo</div>
+    <div class="chip pay-chip" data-value="Tarjeta">Tarjeta</div>
+    <div class="chip pay-chip" data-value="Transferencia">Transferencia</div>
+  </div>
+</div>
+
+<footer>
+  <div class="totales">
+    <div class="items" id="itemsCount">0 productos</div>
+    <div class="monto" id="totalMonto">$0.00</div>
+  </div>
+  <button class="confirmar" id="btnConfirmar" disabled>Registrar venta</button>
+</footer>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN — completar con los datos reales de tu cuenta Jotform
+   ===================================================================== */
+const CONFIG = {
+  // Genera esta clave en Jotform: Ajustes de cuenta → API → Create New Key
+  JOTFORM_API_KEY: "017059e8214b42717a0badf48722060a",
+
+  // ID del formulario que respalda la tabla "Nuevo producto de tienda"
+  // (confirmado: trae los 4 productos reales vía API)
+  PRODUCTS_TABLE_ID: "262046787603058",
+
+  // Formulario "Registrar venta" (ya identificado en conversaciones previas)
+  SALES_FORM_ID: "262046217499059",
+
+  // Nombre del parámetro de URL que ya usas en el botón "Registrar venta"
+  // de "Detalle del cliente" para pasar el cliente preseleccionado
+  CLIENT_URL_PARAM: "nombrecompletoventa",
+
+  // Etiquetas de columna reales, confirmadas en tu tabla "Nuevo producto de tienda"
+  PRODUCT_FIELDS: {
+    nombre: "Nombre del producto",
+    precio: "Precio del producto",
+    stock: "Cantidad en stock",
+    categoria: "Categoría del producto",
+    imagen: "Imagen del producto"
+  },
+
+  // Mapeo de campos del formulario "Registrar venta" (qid reales, confirmados)
+  SALES_FIELD_QIDS: {
+    cliente: "2",           // Nombre completo
+    producto: "3",          // Producto vendido
+    stockDisponible: "10",  // Cantidad en stock (obligatorio en el formulario)
+    cantidad: "4",          // Cantidad vendida
+    total: "5",             // Total de la venta
+    metodoPago: "6",        // Método de pago (Tarjeta|Efectivo|Transferencia)
+    fecha: "7",             // Fecha de venta
+    usuarioVendedor: "8"    // Usuario vendedor (opcional)
+  }
+};
+
+// Datos de muestra: se usan solo si no hay API key configurada,
+// para poder ver y probar el diseño antes de conectar los datos reales.
+const DEMO_PRODUCTS = [
+  { id:"1", nombre:"Playera LINE GYM", precio:15, stock:12, categoria:"Ropa" },
+  { id:"2", nombre:"Shaker 600ml", precio:8, stock:20, categoria:"Accesorios" },
+  { id:"3", nombre:"Proteína Whey 1lb", precio:22, stock:3, categoria:"Suplementos" },
+  { id:"4", nombre:"Guantes de entrenamiento", precio:12, stock:0, categoria:"Accesorios" },
+  { id:"5", nombre:"Banda de resistencia", precio:6, stock:30, categoria:"Accesorios" },
+  { id:"6", nombre:"Creatina 300g", precio:18, stock:7, categoria:"Suplementos" }
+];
+
+/* ===================================================================== */
+
+const state = { productos:[], cart:{}, filtro:"", categoria:"Todo", cliente:null, metodoPago:null };
+
+function isDemoMode(){
+  return CONFIG.JOTFORM_API_KEY === "TU_API_KEY_AQUI" || !CONFIG.JOTFORM_API_KEY;
+}
+
+function initials(text){
+  return (text||"?").trim().slice(0,2).toUpperCase();
+}
+
+function colorForCategory(cat){
+  const palette = { "Ropa":"#ff4b26","Accesorios":"#b6ff3c","Suplementos":"#4ba3ff" };
+  return palette[cat] || "#8c8c88";
+}
+
+function showToast(msg, type){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type||'');
+  setTimeout(()=>{ t.className = 'toast'; }, 3200);
+}
+
+function getClientFromURL(){
+  const params = new URLSearchParams(window.location.search);
+  return params.get(CONFIG.CLIENT_URL_PARAM) || params.get('cliente') || null;
+}
+
+async function fetchProducts(){
+  if (isDemoMode()){
+    document.getElementById('statusLine').textContent =
+      'Modo demostración: configura JOTFORM_API_KEY y PRODUCTS_TABLE_ID en el código para leer datos reales.';
+    return DEMO_PRODUCTS;
+  }
+  const url = `https://api.jotform.com/form/${CONFIG.PRODUCTS_TABLE_ID}/submissions?apiKey=${CONFIG.JOTFORM_API_KEY}&limit=1000`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('No se pudo leer la tabla de productos');
+  const data = await res.json();
+  return (data.content||[]).map(row => {
+    const answers = row.answers || {};
+    const findEntry = (fieldKey) => {
+      const label = (CONFIG.PRODUCT_FIELDS[fieldKey]||'').toLowerCase();
+      return Object.entries(answers).find(([qid, a]) =>
+        a.name === CONFIG.PRODUCT_FIELDS[fieldKey] ||
+        (a.text||'').toLowerCase() === label
+      );
+    };
+    const findVal = (fieldKey) => {
+      const entry = findEntry(fieldKey);
+      return entry ? entry[1].answer : null;
+    };
+    const rawImg = findVal('imagen');
+    const imagen = Array.isArray(rawImg) ? rawImg[0] : rawImg;
+    const stockEntry = findEntry('stock');
+    return {
+      id: row.id,
+      nombre: findVal('nombre') || 'Producto',
+      precio: parseFloat(findVal('precio')) || 0,
+      stock: parseInt(findVal('stock'), 10) || 0,
+      stockQid: stockEntry ? stockEntry[0] : null,
+      categoria: findVal('categoria') || 'General',
+      imagen: imagen || null
+    };
+  });
+}
+
+function renderChips(){
+  const cats = ["Todo", ...new Set(state.productos.map(p=>p.categoria))];
+  const chips = document.getElementById('chips');
+  chips.innerHTML = '';
+  cats.forEach(cat=>{
+    const el = document.createElement('div');
+    el.className = 'chip' + (cat===state.categoria ? ' active':'');
+    el.textContent = cat;
+    el.onclick = ()=>{ state.categoria = cat; renderChips(); renderList(); };
+    chips.appendChild(el);
+  });
+}
+
+function renderList(){
+  const lista = document.getElementById('lista');
+  const q = state.filtro.trim().toLowerCase();
+  const items = state.productos.filter(p=>{
+    const matchCat = state.categoria==="Todo" || p.categoria===state.categoria;
+    const matchQ = !q || p.nombre.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  if (items.length===0){
+    lista.innerHTML = '<div class="empty">No hay productos que coincidan con la búsqueda.</div>';
+    return;
+  }
+
+  lista.innerHTML = '';
+  items.forEach(p=>{
+    const qty = state.cart[p.id] || 0;
+    const out = p.stock<=0;
+    const row = document.createElement('div');
+    row.className = 'product' + (out?' out':'');
+    const thumb = p.imagen
+      ? `<div class="thumb" style="background:#0000"><img src="${p.imagen}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"></div>`
+      : `<div class="thumb" style="background:${colorForCategory(p.categoria)}">${initials(p.nombre)}</div>`;
+    row.innerHTML = `
+      ${thumb}
+      <div class="info">
+        <p class="name">${p.nombre}</p>
+        <p class="meta ${p.stock<=3 && !out ? 'low':''}">${out? 'Sin stock' : 'Stock: '+p.stock}</p>
+      </div>
+      <div class="price">$${p.precio.toFixed(2)}</div>
+      <div class="qty-stepper">
+        <button data-action="dec" ${qty<=0?'disabled':''}>–</button>
+        <span class="qty-val">${qty}</span>
+        <button data-action="inc" ${out || qty>=p.stock ? 'disabled':''}>+</button>
+      </div>
+    `;
+    row.querySelector('[data-action="dec"]').onclick = ()=> changeQty(p, -1);
+    row.querySelector('[data-action="inc"]').onclick = ()=> changeQty(p, 1);
+    lista.appendChild(row);
+  });
+}
+
+function changeQty(product, delta){
+  const current = state.cart[product.id] || 0;
+  const next = Math.max(0, Math.min(product.stock, current + delta));
+  if (next===0) delete state.cart[product.id];
+  else state.cart[product.id] = next;
+  renderList();
+  renderTotals();
+}
+
+function renderTotals(){
+  let count = 0, total = 0;
+  Object.entries(state.cart).forEach(([id, qty])=>{
+    const p = state.productos.find(x=>x.id===id);
+    if (!p) return;
+    count += qty;
+    total += qty * p.precio;
+  });
+  document.getElementById('itemsCount').textContent = `${count} producto${count===1?'':'s'}`;
+  document.getElementById('totalMonto').textContent = `$${total.toFixed(2)}`;
+  const btn = document.getElementById('btnConfirmar');
+  btn.disabled = count===0 || !state.metodoPago;
+}
+
+async function confirmarVenta(){
+  const btn = document.getElementById('btnConfirmar');
+  const items = Object.entries(state.cart).map(([id,qty])=>({
+    producto: state.productos.find(p=>p.id===id),
+    cantidad: qty
+  }));
+  if (items.length===0) return;
+
+  if (isDemoMode()){
+    showToast('Modo demostración: conecta la API para registrar ventas reales.', 'err');
+    return;
+  }
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+  const hoy = new Date();
+  try{
+    for (const item of items){
+      const total = (item.producto.precio * item.cantidad).toFixed(2);
+      const body = new URLSearchParams();
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.cliente}]`, state.cliente || '');
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.producto}]`, item.producto.nombre);
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.stockDisponible}]`, item.producto.stock);
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.cantidad}]`, item.cantidad);
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.total}]`, total);
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.metodoPago}]`, state.metodoPago);
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.fecha}][month]`, hoy.getMonth()+1);
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.fecha}][day]`, hoy.getDate());
+      body.append(`submission[${CONFIG.SALES_FIELD_QIDS.fecha}][year]`, hoy.getFullYear());
+
+      const res = await fetch(`https://api.jotform.com/form/${CONFIG.SALES_FORM_ID}/submissions?apiKey=${CONFIG.JOTFORM_API_KEY}`, {
+        method:'POST', body
+      });
+      const data = await res.json().catch(()=>null);
+      const ok = res.ok && data && data.responseCode===200 && data.content && data.content.submissionID;
+      if (!ok){
+        const detalle = (data && data.message) ? data.message : ('HTTP ' + res.status);
+        console.error('Respuesta de Jotform al registrar venta:', data);
+        throw new Error('Fallo al registrar ' + item.producto.nombre + ' — ' + detalle);
+      }
+
+      // Descontar stock en la tabla de productos
+      const nuevoStock = item.producto.stock - item.cantidad;
+      const stockBody = new URLSearchParams();
+      stockBody.append(`submission[${item.producto.stockQid}]`, nuevoStock);
+      const stockRes = await fetch(`https://api.jotform.com/submission/${item.producto.id}?apiKey=${CONFIG.JOTFORM_API_KEY}`, {
+        method:'POST', body: stockBody
+      });
+      const stockData = await stockRes.json().catch(()=>null);
+      if (!(stockRes.ok && stockData && stockData.responseCode===200)){
+        console.error('Respuesta de Jotform al descontar stock:', stockData);
+        showToast('Venta guardada, pero no se pudo descontar el stock de ' + item.producto.nombre, 'err');
+      }
+    }
+    state.cart = {};
+    state.metodoPago = null;
+    document.querySelectorAll('.pay-chip').forEach(c=>c.classList.remove('active'));
+    showToast('Venta registrada correctamente', 'ok');
+    await cargarTodo();
+  }catch(err){
+    showToast(err.message || 'Ocurrió un error al registrar la venta', 'err');
+  }finally{
+    btn.classList.remove('loading');
+    renderTotals();
+  }
+}
+
+async function cargarTodo(){
+  try{
+    state.productos = await fetchProducts();
+    renderChips();
+    renderList();
+    renderTotals();
+  }catch(err){
+    document.getElementById('statusLine').textContent = err.message;
+    document.getElementById('statusLine').classList.add('error');
+  }
+}
+
+document.getElementById('buscador').addEventListener('input', e=>{
+  state.filtro = e.target.value;
+  renderList();
+});
+document.getElementById('btnConfirmar').addEventListener('click', confirmarVenta);
+document.querySelectorAll('.pay-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.pay-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    state.metodoPago = chip.dataset.value;
+    renderTotals();
+  });
+});
+
+state.cliente = getClientFromURL();
+document.getElementById('clienteNombre').textContent = state.cliente || 'No especificado';
+
+cargarTodo();
+</script>
+</body>
+</html>
