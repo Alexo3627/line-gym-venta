@@ -567,7 +567,7 @@ function renderListaClientes(q){
   });
 }
 
-
+function renderChips(){
   const cats = ["Todo", ...new Set(state.productos.map(p=>p.categoria))];
   const chips = document.getElementById('chips');
   chips.innerHTML = '';
