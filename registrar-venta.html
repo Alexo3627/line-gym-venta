@@ -260,6 +260,61 @@
   .toast.show{display:block;}
   .toast.ok{border-color:var(--ok);}
   .toast.err{border-color:var(--accent);}
+
+  .cliente-link{
+    color:var(--ok);
+    font-size:13px;
+    font-weight:600;
+    text-decoration:underline;
+    cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:var(--bg);
+    z-index:40;
+    display:none;
+    flex-direction:column;
+  }
+  .overlay.show{display:flex;}
+  .overlay-header{
+    padding:16px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .overlay-header input{
+    flex:1;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:10px 14px;
+    color:var(--text);
+    font-size:14px;
+    font-family:inherit;
+  }
+  .overlay-header input:focus{outline:none;border-color:var(--accent);}
+  .overlay-close{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:22px;
+    line-height:1;
+    cursor:pointer;
+  }
+  .overlay-list{
+    overflow-y:auto;
+    flex:1;
+  }
+  .cliente-item{
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+  }
+  .cliente-item .nombre{font-size:15px;font-weight:600;}
+  .cliente-item .tel{font-size:12px;color:var(--muted);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -278,6 +333,14 @@
   </div>
   <div class="chips" id="chips"></div>
 </header>
+
+<div class="overlay" id="clienteOverlay">
+  <div class="overlay-header">
+    <input type="text" id="buscadorCliente" placeholder="Buscar cliente por nombre">
+    <button class="overlay-close" id="cerrarOverlay">&times;</button>
+  </div>
+  <div class="overlay-list" id="listaClientes"></div>
+</div>
 
 <main>
   <div class="status-line" id="statusLine"></div>
@@ -329,6 +392,21 @@ const CONFIG = {
     imagen: "Imagen del producto"
   },
 
+  // Tabla "Nuevo cliente" — se usa solo cuando no llega un cliente por URL
+  // (es decir, cuando se entra desde la pantalla general de Ventas)
+  CLIENTS_TABLE_ID: "262046687259064",
+  CLIENT_FIELDS: {
+    nombre: "Nombre completo",
+    estado: "Estado"
+  },
+
+  // Formulario que respalda la tabla "Nuevo cliente" (para el buscador de clientes)
+  CLIENTS_TABLE_ID: "262046687259064",
+  CLIENT_FIELDS: {
+    nombre: "Nombre completo",
+    telefono: "Número de teléfono"
+  },
+
   // Mapeo de campos del formulario "Registrar venta" (qid reales, confirmados)
   SALES_FIELD_QIDS: {
     cliente: "2",           // Nombre completo
@@ -355,7 +433,14 @@ const DEMO_PRODUCTS = [
 
 /* ===================================================================== */
 
-const state = { productos:[], cart:{}, filtro:"", categoria:"Todo", cliente:null, metodoPago:null };
+const DEMO_CLIENTS = [
+  { nombre:"Juan Pérez", telefono:"0991234567" },
+  { nombre:"María Torres", telefono:"0987654321" }
+];
+
+/* ===================================================================== */
+
+const state = { productos:[], clientes:[], cart:{}, filtro:"", categoria:"Todo", cliente:null, clienteBloqueado:false, metodoPago:null };
 
 function isDemoMode(){
   return CONFIG.JOTFORM_API_KEY === "TU_API_KEY_AQUI" || !CONFIG.JOTFORM_API_KEY;
@@ -420,7 +505,69 @@ async function fetchProducts(){
   });
 }
 
-function renderChips(){
+async function fetchClients(){
+  if (isDemoMode()) return DEMO_CLIENTS;
+  const url = `https://api.jotform.com/form/${CONFIG.CLIENTS_TABLE_ID}/submissions?apiKey=${CONFIG.JOTFORM_API_KEY}&limit=1000`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.content||[]).map(row => {
+    const answers = row.answers || {};
+    const findVal = (label) => {
+      const l = label.toLowerCase();
+      const match = Object.values(answers).find(a => (a.text||'').toLowerCase()===l);
+      return match ? match.answer : null;
+    };
+    return {
+      nombre: findVal(CONFIG.CLIENT_FIELDS.nombre) || 'Sin nombre',
+      telefono: findVal(CONFIG.CLIENT_FIELDS.telefono) || ''
+    };
+  }).filter(c=>c.nombre && c.nombre!=='Sin nombre');
+}
+
+function renderClienteBadge(){
+  const badge = document.getElementById('clienteNombre');
+  if (state.cliente){
+    badge.textContent = state.cliente;
+  } else if (state.clienteBloqueado){
+    badge.textContent = 'No especificado';
+  } else {
+    badge.innerHTML = '<span class="cliente-link" id="abrirOverlay">Seleccionar cliente</span>';
+    document.getElementById('abrirOverlay').onclick = abrirOverlayCliente;
+  }
+}
+
+function abrirOverlayCliente(){
+  document.getElementById('clienteOverlay').classList.add('show');
+  document.getElementById('buscadorCliente').value = '';
+  renderListaClientes('');
+  document.getElementById('buscadorCliente').focus();
+}
+
+function renderListaClientes(q){
+  const lista = document.getElementById('listaClientes');
+  const query = q.trim().toLowerCase();
+  const items = state.clientes.filter(c => !query || c.nombre.toLowerCase().includes(query));
+  if (items.length===0){
+    lista.innerHTML = '<div class="empty">No se encontraron clientes.</div>';
+    return;
+  }
+  lista.innerHTML = '';
+  items.forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'cliente-item';
+    el.innerHTML = `<div class="nombre">${c.nombre}</div>${c.telefono?`<div class="tel">${c.telefono}</div>`:''}`;
+    el.onclick = ()=>{
+      state.cliente = c.nombre;
+      document.getElementById('clienteOverlay').classList.remove('show');
+      renderClienteBadge();
+      renderTotals();
+    };
+    lista.appendChild(el);
+  });
+}
+
+
   const cats = ["Todo", ...new Set(state.productos.map(p=>p.categoria))];
   const chips = document.getElementById('chips');
   chips.innerHTML = '';
@@ -495,7 +642,7 @@ function renderTotals(){
   document.getElementById('itemsCount').textContent = `${count} producto${count===1?'':'s'}`;
   document.getElementById('totalMonto').textContent = `$${total.toFixed(2)}`;
   const btn = document.getElementById('btnConfirmar');
-  btn.disabled = count===0 || !state.metodoPago;
+  btn.disabled = count===0 || !state.metodoPago || !state.cliente;
 }
 
 async function confirmarVenta(){
@@ -554,7 +701,9 @@ async function confirmarVenta(){
     }
     state.cart = {};
     state.metodoPago = null;
+    if (!state.clienteBloqueado) state.cliente = null;
     document.querySelectorAll('.pay-chip').forEach(c=>c.classList.remove('active'));
+    renderClienteBadge();
     showToast('Venta registrada correctamente', 'ok');
     await cargarTodo();
   }catch(err){
@@ -567,7 +716,9 @@ async function confirmarVenta(){
 
 async function cargarTodo(){
   try{
-    state.productos = await fetchProducts();
+    const [productos, clientes] = await Promise.all([fetchProducts(), fetchClients()]);
+    state.productos = productos;
+    state.clientes = clientes;
     renderChips();
     renderList();
     renderTotals();
@@ -581,6 +732,12 @@ document.getElementById('buscador').addEventListener('input', e=>{
   state.filtro = e.target.value;
   renderList();
 });
+document.getElementById('buscadorCliente').addEventListener('input', e=>{
+  renderListaClientes(e.target.value);
+});
+document.getElementById('cerrarOverlay').addEventListener('click', ()=>{
+  document.getElementById('clienteOverlay').classList.remove('show');
+});
 document.getElementById('btnConfirmar').addEventListener('click', confirmarVenta);
 document.querySelectorAll('.pay-chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
@@ -591,8 +748,10 @@ document.querySelectorAll('.pay-chip').forEach(chip=>{
   });
 });
 
-state.cliente = getClientFromURL();
-document.getElementById('clienteNombre').textContent = state.cliente || 'No especificado';
+const clienteURL = getClientFromURL();
+state.cliente = clienteURL;
+state.clienteBloqueado = !!clienteURL;
+renderClienteBadge();
 
 cargarTodo();
 </script>
