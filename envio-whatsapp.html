@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enviar WhatsApp — LINE GYM EC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121212;
+    --panel:#1b1b1b;
+    --panel-2:#212121;
+    --line:#2a2a2a;
+    --text:#f2f2f0;
+    --muted:#8c8c88;
+    --accent:#ff4b26;
+    --accent-dim:#7a2d1c;
+    --ok:#b6ff3c;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:110px;
+  }
+  header{
+    padding:20px 16px 12px;
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    background:var(--bg);
+    z-index:10;
+  }
+  h1{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:24px;
+    letter-spacing:0.3px;
+    margin:0 0 14px;
+    line-height:1;
+  }
+  .filters{display:flex;flex-direction:column;gap:8px;}
+  .filters input, .filters select{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:10px 14px;
+    color:var(--text);
+    font-size:14px;
+    font-family:inherit;
+  }
+  .filters input::placeholder{color:var(--muted);}
+  .filters input:focus, .filters select:focus{outline:none;border-color:var(--accent);}
+  .date-row{display:flex;gap:8px;align-items:center;}
+  .date-row label{font-size:12px;color:var(--muted);flex:none;}
+  .date-row input{flex:1;}
+
+  main{padding:8px 16px 8px;}
+  .status-line{font-size:12px;color:var(--muted);padding:8px 2px 4px;}
+  .status-line.error{color:var(--accent);}
+
+  .select-all-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 2px;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+    color:var(--muted);
+  }
+  .select-all-row label{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);}
+
+  .cliente-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 2px;
+    border-bottom:1px solid var(--line);
+  }
+  .cliente-row input[type=checkbox]{
+    width:20px;height:20px;
+    accent-color:var(--ok);
+    flex:none;
+  }
+  .cliente-row .info{flex:1;min-width:0;}
+  .cliente-row .nombre{font-size:15px;font-weight:600;margin:0 0 2px;}
+  .cliente-row .meta{font-size:12px;color:var(--muted);}
+  .cliente-row .meta.vence-pronto{color:var(--accent);}
+
+  .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:14px;}
+
+  .plantilla-box{
+    padding:14px 2px 6px;
+    border-top:1px solid var(--line);
+    margin-top:8px;
+  }
+  .plantilla-box label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;}
+  .preview{
+    margin-top:10px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    font-size:13px;
+    color:var(--text);
+    white-space:pre-wrap;
+  }
+  .preview .tag{color:var(--muted);font-size:11px;display:block;margin-bottom:4px;}
+
+  footer{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--panel-2);
+    border-top:1px solid var(--line);
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .contador{font-size:13px;color:var(--muted);}
+  .contador strong{color:var(--text);font-size:15px;}
+  .preparar{
+    background:var(--ok);
+    color:#121212;
+    border:none;
+    border-radius:var(--radius);
+    padding:14px 22px;
+    font-size:14px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    flex:none;
+  }
+  .preparar:disabled{background:var(--line);color:var(--muted);cursor:default;}
+
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:var(--bg);
+    z-index:40;
+    display:none;
+    flex-direction:column;
+  }
+  .overlay.show{display:flex;}
+  .overlay-header{
+    padding:16px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .overlay-header h2{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:20px;
+    margin:0;
+  }
+  .overlay-close{background:none;border:none;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;}
+  .overlay-list{overflow-y:auto;flex:1;padding:8px 16px;}
+  .envio-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:14px 2px;
+    border-bottom:1px solid var(--line);
+  }
+  .envio-item.enviado{opacity:.45;}
+  .envio-item .nombre{font-size:14px;font-weight:600;}
+  .envio-item .tel{font-size:12px;color:var(--muted);}
+  .abrir-chat{
+    background:#25D366;
+    color:#0b3d1f;
+    border:none;
+    border-radius:8px;
+    padding:10px 16px;
+    font-size:13px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    flex:none;
+    text-decoration:none;
+  }
+  .abrir-chat.done{background:var(--line);color:var(--muted);}
+
+  .toast{
+    position:fixed;top:14px;left:50%;transform:translateX(-50%);
+    background:var(--panel-2);border:1px solid var(--line);
+    padding:10px 16px;border-radius:8px;font-size:13px;z-index:50;display:none;
+  }
+  .toast.show{display:block;}
+  .toast.err{border-color:var(--accent);}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<header>
+  <h1>Enviar WhatsApp</h1>
+  <div class="filters">
+    <input type="text" id="buscadorNombre" placeholder="Buscar cliente por nombre">
+    <div class="date-row">
+      <label>Vence desde</label>
+      <input type="date" id="fechaDesde">
+      <label>hasta</label>
+      <input type="date" id="fechaHasta">
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="status-line" id="statusLine"></div>
+  <div class="select-all-row">
+    <label><input type="checkbox" id="checkTodos"> Seleccionar todos los visibles</label>
+    <span id="contadorVisibles"></span>
+  </div>
+  <div id="listaClientes"></div>
+
+  <div class="plantilla-box">
+    <label>Plantilla de mensaje</label>
+    <select id="selectPlantilla"></select>
+    <div class="preview" id="preview">
+      <span class="tag">Vista previa (con el primer cliente seleccionado)</span>
+      <span id="previewTexto">Selecciona una plantilla y al menos un cliente.</span>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="contador"><strong id="totalSeleccionados">0</strong> seleccionados</div>
+  <button class="preparar" id="btnPreparar" disabled>Preparar envíos</button>
+</footer>
+
+<div class="overlay" id="overlayEnvio">
+  <div class="overlay-header">
+    <h2>Enviar mensajes</h2>
+    <button class="overlay-close" id="cerrarOverlayEnvio">&times;</button>
+  </div>
+  <div class="overlay-list" id="listaEnvios"></div>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN
+   ===================================================================== */
+const CONFIG = {
+  JOTFORM_API_KEY: "017059e8214b42717a0badf48722060a",
+
+  CLIENTS_TABLE_ID: "262046687259064",
+  CLIENT_FIELDS: {
+    nombre: "Nombre completo",
+    telefono: "Número de teléfono",
+    vencimiento: "Fecha de vencimiento"
+  },
+
+  TEMPLATES_TABLE_ID: "262547260768062",
+  TEMPLATE_FIELDS: {
+    nombre: "Nombre de la plantilla",
+    mensaje: "Mensaje"
+  },
+
+  // Código de país para armar el número completo de WhatsApp (Ecuador = 593).
+  // Se usa solo si el teléfono guardado no trae ya un código de país.
+  DEFAULT_COUNTRY_CODE: "593"
+};
+
+const DEMO_CLIENTS = [
+  { nombre:"Juan Pérez", telefono:"0991234567", vencimiento:"2026-09-20" },
+  { nombre:"María Torres", telefono:"0987654321", vencimiento:"2026-10-05" }
+];
+const DEMO_TEMPLATES = [
+  { nombre:"Recordatorio de vencimiento", mensaje:"Hola {nombre}, tu membresía vence pronto. ¡Renuévala para seguir entrenando con nosotros!" }
+];
+
+/* ===================================================================== */
+
+const state = { clientes:[], plantillas:[], seleccionados:new Set(), filtroNombre:"", desde:null, hasta:null };
+
+function isDemoMode(){
+  return CONFIG.JOTFORM_API_KEY === "TU_API_KEY_AQUI" || !CONFIG.JOTFORM_API_KEY;
+}
+
+function showToast(msg, type){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type||'');
+  setTimeout(()=>{ t.className = 'toast'; }, 3200);
+}
+
+function findVal(answers, label){
+  const l = label.toLowerCase();
+  const match = Object.values(answers).find(a => (a.text||'').toLowerCase()===l);
+  return match ? match.answer : null;
+}
+
+function parseFecha(raw){
+  // control_datetime devuelve {month, day, year, datetime}
+  if (!raw) return null;
+  if (typeof raw === 'object' && raw.year) return `${raw.year}-${String(raw.month).padStart(2,'0')}-${String(raw.day).padStart(2,'0')}`;
+  return null;
+}
+
+async function fetchClients(){
+  if (isDemoMode()) return DEMO_CLIENTS;
+  const url = `https://api.jotform.com/form/${CONFIG.CLIENTS_TABLE_ID}/submissions?apiKey=${CONFIG.JOTFORM_API_KEY}&limit=1000`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('No se pudo leer la tabla de clientes');
+  const data = await res.json();
+  return (data.content||[]).map(row=>{
+    const answers = row.answers || {};
+    return {
+      nombre: findVal(answers, CONFIG.CLIENT_FIELDS.nombre) || 'Sin nombre',
+      telefono: findVal(answers, CONFIG.CLIENT_FIELDS.telefono) || '',
+      vencimiento: parseFecha(findVal(answers, CONFIG.CLIENT_FIELDS.vencimiento))
+    };
+  }).filter(c=>c.nombre && c.nombre!=='Sin nombre');
+}
+
+async function fetchTemplates(){
+  if (isDemoMode()) return DEMO_TEMPLATES;
+  const url = `https://api.jotform.com/form/${CONFIG.TEMPLATES_TABLE_ID}/submissions?apiKey=${CONFIG.JOTFORM_API_KEY}&limit=1000`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('No se pudo leer la tabla de plantillas');
+  const data = await res.json();
+  return (data.content||[]).map(row=>{
+    const answers = row.answers || {};
+    return {
+      nombre: findVal(answers, CONFIG.TEMPLATE_FIELDS.nombre) || 'Sin nombre',
+      mensaje: findVal(answers, CONFIG.TEMPLATE_FIELDS.mensaje) || ''
+    };
+  });
+}
+
+function formatTelefono(raw){
+  let digits = (raw||'').replace(/\D/g,'');
+  if (digits.length===0) return null;
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  // Si ya parece traer código de país (más de 10 dígitos), se deja tal cual
+  if (digits.length > 10) return digits;
+  return CONFIG.DEFAULT_COUNTRY_CODE + digits;
+}
+
+function clienteFiltrado(c){
+  const q = state.filtroNombre.trim().toLowerCase();
+  if (q && !c.nombre.toLowerCase().includes(q)) return false;
+  if (state.desde && (!c.vencimiento || c.vencimiento < state.desde)) return false;
+  if (state.hasta && (!c.vencimiento || c.vencimiento > state.hasta)) return false;
+  return true;
+}
+
+function renderLista(){
+  const cont = document.getElementById('listaClientes');
+  const visibles = state.clientes.filter(clienteFiltrado);
+  document.getElementById('contadorVisibles').textContent = `${visibles.length} clientes`;
+
+  if (visibles.length===0){
+    cont.innerHTML = '<div class="empty">No hay clientes que coincidan con el filtro.</div>';
+    document.getElementById('checkTodos').checked = false;
+    return;
+  }
+
+  cont.innerHTML = '';
+  const hoy = new Date().toISOString().slice(0,10);
+  visibles.forEach(c=>{
+    const checked = state.seleccionados.has(c.nombre);
+    const row = document.createElement('div');
+    row.className = 'cliente-row';
+    const vencido = c.vencimiento && c.vencimiento < hoy;
+    const venceTxt = c.vencimiento
+      ? (vencido ? `Vencido desde ${c.vencimiento}` : `Vence: ${c.vencimiento}`)
+      : 'Sin fecha de vencimiento';
+    row.innerHTML = `
+      <input type="checkbox" ${checked?'checked':''}>
+      <div class="info">
+        <p class="nombre">${c.nombre}</p>
+        <p class="meta ${vencido?'vence-pronto':''}">${c.telefono||'Sin teléfono'} · ${venceTxt}</p>
+      </div>
+    `;
+    row.querySelector('input').addEventListener('change', e=>{
+      if (e.target.checked) state.seleccionados.add(c.nombre);
+      else state.seleccionados.delete(c.nombre);
+      renderFooterYPreview();
+      actualizarCheckTodos(visibles);
+    });
+    cont.appendChild(row);
+  });
+  actualizarCheckTodos(visibles);
+}
+
+function actualizarCheckTodos(visibles){
+  const todosMarcados = visibles.length>0 && visibles.every(c=>state.seleccionados.has(c.nombre));
+  document.getElementById('checkTodos').checked = todosMarcados;
+}
+
+function renderPlantillas(){
+  const sel = document.getElementById('selectPlantilla');
+  sel.innerHTML = '<option value="">— Elegir plantilla —</option>';
+  state.plantillas.forEach((p,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = p.nombre;
+    sel.appendChild(opt);
+  });
+}
+
+function renderFooterYPreview(){
+  const total = state.seleccionados.size;
+  document.getElementById('totalSeleccionados').textContent = total;
+  const idx = document.getElementById('selectPlantilla').value;
+  const btn = document.getElementById('btnPreparar');
+  btn.disabled = total===0 || idx==='';
+
+  const previewEl = document.getElementById('previewTexto');
+  if (idx==='' || total===0){
+    previewEl.textContent = 'Selecciona una plantilla y al menos un cliente.';
+    return;
+  }
+  const plantilla = state.plantillas[idx];
+  const primerNombre = Array.from(state.seleccionados)[0];
+  previewEl.textContent = plantilla.mensaje.replace(/{nombre}/g, primerNombre);
+}
+
+function abrirOverlayEnvios(){
+  const idx = document.getElementById('selectPlantilla').value;
+  const plantilla = state.plantillas[idx];
+  const cont = document.getElementById('listaEnvios');
+  cont.innerHTML = '';
+
+  state.clientes.filter(c=>state.seleccionados.has(c.nombre)).forEach(c=>{
+    const telFmt = formatTelefono(c.telefono);
+    const mensaje = plantilla.mensaje.replace(/{nombre}/g, c.nombre);
+    const item = document.createElement('div');
+    item.className = 'envio-item';
+    if (!telFmt){
+      item.innerHTML = `
+        <div><div class="nombre">${c.nombre}</div><div class="tel">Sin teléfono válido</div></div>
+      `;
+    } else {
+      const url = `https://wa.me/${telFmt}?text=${encodeURIComponent(mensaje)}`;
+      item.innerHTML = `
+        <div><div class="nombre">${c.nombre}</div><div class="tel">${c.telefono}</div></div>
+        <a class="abrir-chat" href="${url}" target="_blank" rel="noopener">Abrir WhatsApp</a>
+      `;
+      item.querySelector('.abrir-chat').addEventListener('click', ()=>{
+        item.classList.add('enviado');
+        item.querySelector('.abrir-chat').classList.add('done');
+        item.querySelector('.abrir-chat').textContent = 'Abierto ✓';
+      });
+    }
+    cont.appendChild(item);
+  });
+
+  document.getElementById('overlayEnvio').classList.add('show');
+}
+
+document.getElementById('buscadorNombre').addEventListener('input', e=>{
+  state.filtroNombre = e.target.value;
+  renderLista();
+});
+document.getElementById('fechaDesde').addEventListener('change', e=>{
+  state.desde = e.target.value || null;
+  renderLista();
+});
+document.getElementById('fechaHasta').addEventListener('change', e=>{
+  state.hasta = e.target.value || null;
+  renderLista();
+});
+document.getElementById('checkTodos').addEventListener('change', e=>{
+  const visibles = state.clientes.filter(clienteFiltrado);
+  if (e.target.checked) visibles.forEach(c=>state.seleccionados.add(c.nombre));
+  else visibles.forEach(c=>state.seleccionados.delete(c.nombre));
+  renderLista();
+  renderFooterYPreview();
+});
+document.getElementById('selectPlantilla').addEventListener('change', renderFooterYPreview);
+document.getElementById('btnPreparar').addEventListener('click', abrirOverlayEnvios);
+document.getElementById('cerrarOverlayEnvio').addEventListener('click', ()=>{
+  document.getElementById('overlayEnvio').classList.remove('show');
+});
+
+async function cargarTodo(){
+  try{
+    const [clientes, plantillas] = await Promise.all([fetchClients(), fetchTemplates()]);
+    state.clientes = clientes;
+    state.plantillas = plantillas;
+    if (isDemoMode()){
+      document.getElementById('statusLine').textContent =
+        'Modo demostración: configura JOTFORM_API_KEY en el código para leer datos reales.';
+    }
+    renderLista();
+    renderPlantillas();
+    renderFooterYPreview();
+  }catch(err){
+    document.getElementById('statusLine').textContent = err.message;
+    document.getElementById('statusLine').classList.add('error');
+  }
+}
+
+cargarTodo();
+</script>
+</body>
+</html>
