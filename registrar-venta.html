@@ -477,7 +477,7 @@ async function fetchProducts(){
   const res = await fetch(url);
   if (!res.ok) throw new Error('No se pudo leer la tabla de productos');
   const data = await res.json();
-  return (data.content||[]).map(row => {
+  return (data.content||[]).filter(row=>row.status!=='DELETED').map(row => {
     const answers = row.answers || {};
     const findEntry = (fieldKey) => {
       const label = (CONFIG.PRODUCT_FIELDS[fieldKey]||'').toLowerCase();
@@ -511,7 +511,7 @@ async function fetchClients(){
   const res = await fetch(url);
   if (!res.ok) return [];
   const data = await res.json();
-  return (data.content||[]).map(row => {
+  return (data.content||[]).filter(row=>row.status!=='DELETED').map(row => {
     const answers = row.answers || {};
     const findVal = (label) => {
       const l = label.toLowerCase();

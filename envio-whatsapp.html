@@ -314,13 +314,7 @@ async function fetchClients(){
   const res = await fetch(url);
   if (!res.ok) throw new Error('No se pudo leer la tabla de clientes');
   const data = await res.json();
-  return (data.content||[]).map(row=>{
-    const answers = row.answers || {};
-    return {
-      nombre: findVal(answers, CONFIG.CLIENT_FIELDS.nombre) || 'Sin nombre',
-      telefono: findVal(answers, CONFIG.CLIENT_FIELDS.telefono) || '',
-      vencimiento: parseFecha(findVal(answers, CONFIG.CLIENT_FIELDS.vencimiento))
-    };
+  return (data.content||[]).filter(row=>row.status!=='DELETED').map(row=>{
   }).filter(c=>c.nombre && c.nombre!=='Sin nombre');
 }
 
